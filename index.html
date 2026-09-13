@@ -111,6 +111,7 @@ th{color:var(--muted);font-weight:800;background:#f8f9fb}
   <div class="container hi">
     <div class="logo" onclick="go('home')">وصّل<b>ها</b></div>
     <select class="gov-select" id="govSel" onchange="changeGov(this.value)"></select>
+    <select class="gov-select hidden" id="ctrSel" onchange="changeCenter(this.value)"></select>
     <div class="search"><input id="q" placeholder="ابحث عن محل، صيدلية، مطعم..." oninput="renderHome()"></div>
     <button class="icon-btn" onclick="openNotifs()">الإشعارات <span class="badge-n hidden" id="nBadge">0</span></button>
     <button class="icon-btn" onclick="openCart()">السلة <span class="badge-n hidden" id="cBadge">0</span></button>
@@ -126,7 +127,7 @@ th{color:var(--muted);font-weight:800;background:#f8f9fb}
     <p>مطاعم · محلات · صيدليات · بقالة — كل محافظات مصر</p>
   </div>
   <div id="adsBox"></div>
-  <h2 class="sec"><span>المحلات والمطاعم في <span id="homeGov"></span></span>
+  <h2 class="sec"><span>المحلات والمطاعم في <span id="homeGov"></span> <span id="homeCenter" class="muted" style="font-size:.85rem"></span></span>
     <select class="sel" style="width:auto;margin:0" id="sortSel" onchange="renderStores()">
       <option value="alpha">ترتيب أبجدي</option>
       <option value="new">الأحدث</option>
@@ -293,6 +294,74 @@ const DEF_DLV=[
 
 const DEF_ADS=[{id:"ad1",title:"خصم 20% من مطعم أسماك المرجان",text:"على كل وجبات السي فود لمدة أسبوع",gov:"القاهرة",active:true}];
 
+/* ===== مراكز ومدن المحافظات ===== */
+const GOV_CENTERS={
+"القاهرة":["مدينة نصر","المعادي","مصر الجديدة","التجمع الخامس","شبرا","عين شمس","وسط البلد","المطرية"],
+"الجيزة":["الهرم","فيصل","إمبابة","الشيخ زايد","6 أكتوبر","المهندسين","العجوزة","الوراق"],
+"الإسكندرية":["سموحة","المنشية","العجمي","جليم","رشدي","سيدي بشر","المنتزه","جناكليس"],
+"القليوبية":["بنها","شبرا الخيمة","قليوب","طوخ","الخانكة","العبور","الخصوص"],
+"الدقهلية":["المنصورة","طلخا","ميت غمر","دكرنس","أجا","السنبلاوين","بلقاس","شربين"],
+"الشرقية":["الزقازيق","العاشر من رمضان","منيا القمح","بلبيس","فاقوس","الإبراهيمية","ديرب نجم"],
+"الغربية":["طنطا","المحلة الكبرى","كفر الزيات","زفتى","السنطة","قطور","بسيون"],
+"المنوفية":["شبين الكوم","منوف","السادات","أشمون","الباجور","قويسنا","تلا"],
+"البحيرة":["دمنهور","كفر الدوار","رشيد","إدكو","أبو المطامير","شبراخيت","المحمودية"],
+"كفر الشيخ":["مدينة كفر الشيخ","دسوق","فوه","مطوبس","بلطيم","سيدي سالم","الرياض"],
+"دمياط":["دمياط الجديدة","رأس البر","عزبة البرج","ميت أبو غالب","الزرقا"],
+"بورسعيد":["حي الشرق","حي العرب","حي المناخ","حي الجنوب","حي الزهور"],
+"الإسماعيلية":["الإسماعيلية","فايد","القنطرة شرق","القنطرة غرب","أبو صوير"],
+"السويس":["حي الأربعين","حي عتاقة","حي الجناين","حي السويس"],
+"الفيوم":["مدينة الفيوم","طامية","إطسا","سنورس","أبشواي"],
+"بني سويف":["مدينة بني سويف","الواسطى","ناصر","إهناسيا","سمسطا","الفشن"],
+"المنيا":["مدينة المنيا","ملوي","دير مواس","مغاغة","بني مزار","سمالوط","أبو قرقاص"],
+"أسيوط":["مدينة أسيوط","ديروط","منفلوط","القوصية","أبنوب","الفتح","صدفا"],
+"سوهاج":["مدينة سوهاج","أخميم","طهطا","طما","جهينة","المراغة","العسيرات"],
+"قنا":["مدينة قنا","قفط","نجع حمادي","دشنا","قوص","أبو تشت"],
+"الأقصر":["مدينة الأقصر","إسنا","أرمنت","البياضية","القرنة","الأقصر الجديدة"],
+"أسوان":["مدينة أسوان","دراو","كوم أمبو","نصر النوبة","إدفو"],
+"البحر الأحمر":["الغردقة","سفاجا","القصير","مرسى علم","رأس غارب"],
+"مطروح":["مرسى مطروح","السلوم","الضبعة","النجيلة","الحمام","سيدي براني"],
+"شمال سيناء":["العريش","الشيخ زويد","رفح","بئر العبد","الحسنة"],
+"جنوب سيناء":["شرم الشيخ","دهب","نويبع","الطور","سانت كاترين"],
+"الوادي الجديد":["الخارجة","الداخلة","الفرافرة","باريس"]};
+
+/* ===== دليل المحافظات (مطاعم/صيدليات/معامل/دكاترة/شركات توصيل) — بيانات مبدئية قابلة للتعديل من الأدمن ===== */
+const DEF_DIR={
+"القاهرة":{rest:[["مطعم الدمشقي","01012345678"],["كشري أبو طارق","0225916400"],["مطعم فسفور","01119876543"],["زيادة عن اللزوم","01001112223"],["بيتزا هت – مدينة نصر","0234567890"]],
+phar:[["صيدلية العزبي","19999"],["صيدليات رويال","01055550101"],["صيدلية الشفاء – المعادي","01223456789"],["صيدلية 19019","19019"]],
+lab:[["معامل د محمد صقر للتحاليل الطبية","01065756594","فرع القاهرة – تفاصيل الموقع على خرائط جوجل","يعمل 24 ساعة على مدار اليوم","01060651837","00503460042","https://maps.app.goo.gl/iiFfEVjyHQkVs4ms5"],["معامل البرج","19916"],["معمل المختبر – مدينة نصر","01099998888"],["معمل الحياة للتحاليل","01144556677"]],
+doc:[["د. أحمد مختار – باطنة","01010101010"],["د. سارة حسن – أطفال","01020202020"],["د. محمد عبد العال – عظام","01030303030"],["د. منى السيد – نساء وتوليد","01040404040"]],
+dlv:[[ "شركة طلعت Must شركة","01055550001"],["دليفري التوحيد","01055550002"],["أوبر إيتس","تحميل التطبيق"]]},
+"الجيزة":{rest:[["مطعم الأورمان","01055550010"],["السوري للمشويات","01055550011"],["كشري السلام","01055550012"],["مطعم عمر الكرنك","01055550013"]],
+phar:[["صيدليات العزبي – الهرم","19999"],["صيدلية النور – فيصل","01055550014"],["صيدلية الشروق – أكتوبر","01055550015"]],
+lab:[["معمل البرج – الهرم","19916"],["معمل الدكتور محمود فتحي","01055550016"],["معمل الشفاء – أكتوبر","01055550017"]],
+doc:[["د. هشام عباس – قلب","01055550018"],["د. رانيا فؤاد – جلدية","01055550019"],["د. كريم شحاتة – أسنان","01055550020"]],
+dlv:[["دليفري أكتوبر","01055550021"],["شركة سرعة الجيزة","01055550022"],["طلبات (التطبيق)","تحميل التطبيق"]]},
+"الإسكندرية":{rest:[["مطعم بالكو – كامب شيزار","01055550030"],["فطيرة مشالتي","01055550031"],["كشري جحا","01055550032"],["مطعم البركة – سموحة","01055550033"]],
+phar:[["صيدليات العزبي – سموحة","19999"],["صيدلية كريستال","01055550034"],["صيدلية سموحة الشاملة","01055550035"]],
+lab:[["معمل البرج – سموحة","19916"],["معمل الحسيني","01055550036"],["معمل إيجلاب – جليم","01055550037"]],
+doc:[["د. سامي فهمي – باطنة","01055550038"],["د. إيمان رشوان – أطفال","01055550039"],["د. عصام الدين – عيون","01055550040"]],
+dlv:[["دليفري إسكندرية","01055550041"],["شركة البحر أكسبرس","01055550042"],["الكباتن – إسكندرية","01055550043"]]},
+"الدقهلية":{rest:[["مطعم أبو عمر – المنصورة","01055550050"],["كشري المنصورة","01055550051"],["مطعم البلد – شربين","01055550052"]],
+phar:[["صيدلية المنصورة الكبرى","01055550053"],["صيدلية الإيمان","01055550054"],["صيدلية طلخا","01055550055"]],
+lab:[["معمل البرج – المنصورة","19916"],["معمل النيل","01055550056"]],
+doc:[["د. أيمن فتحي – باطنة","01055550057"],["د. هبة الله – نساء وتوليد","01055550058"]],
+dlv:[["دليفري المنصورة","01055550059"],["كباتن الدقهلية","01055550060"]]},
+"أسيوط":{rest:[["مطعم الوليمة","01055550070"],["كشري أسيوط","01055550071"],["مطعم الجامعة","01055550072"]],
+phar:[["صيدلية أسيوط المركزية","01055550073"],["صيدلية الشفاء – منفلوط","01055550074"]],
+lab:[["معمل البرج – أسيوط","19916"],["معمل النصر","01055550075"]],
+doc:[["د. صلاح مهران – عظام","01055550076"],["د. أمل فوزي – أطفال","01055550077"]],
+dlv:[["دليفري أسيوط","01055550078"],["كباتن الصعيد","01055550079"]]}
+};
+
+/* تعبئة بيانات أولية لباقي المحافظات بأسلوب موحد */
+const _genGov=g=>({rest:[["مطعم العائلة – "+g,"0105555"+Math.floor(1000+Math.random()*9000)],["كشري الشارع – "+g,"0105555"+Math.floor(1000+Math.random()*9000)],["مطعم السلام – "+g,"0105555"+Math.floor(1000+Math.random()*9000)]],
+phar:[["صيدلية "+g+" المركزية","0105555"+Math.floor(1000+Math.random()*9000)],["صيدلية النور – "+g,"0105555"+Math.floor(1000+Math.random()*9000)]],
+lab:[["معمل البرج – "+g,"19916"],["معمل الحياة – "+g,"0105555"+Math.floor(1000+Math.random()*9000)]],
+doc:[["د. محمود علي – باطنة ("+g+")","0105555"+Math.floor(1000+Math.random()*9000)],["د. أحمد سمير – أطفال ("+g+")","0105555"+Math.floor(1000+Math.random()*9000)]],
+dlv:[["دليفري "+g,"0105555"+Math.floor(1000+Math.random()*9000)],["كباتن "+g,"0105555"+Math.floor(1000+Math.random()*9000)]]});
+GOVS.forEach(g=>{if(!DEF_DIR[g[0]])DEF_DIR[g[0]]=_genGov(g[0])});
+const DIR_TYPES=[["rest","مطاعم"],["phar","صيدليات"],["lab","معامل التحاليل"],["doc","دكاترة"],["dlv","شركات التوصيل"]];
+
 /* ================= STATE / STORAGE ================= */
 const DB={
  get:(k,d)=>{try{const v=JSON.parse(localStorage.getItem('w2_'+k));return v===null||v===undefined?d:v}catch(e){return d}},
@@ -303,13 +372,14 @@ let dlv=DB.get('dlv',DEF_DLV);
 let ads=DB.get('ads',DEF_ADS);
 let emg=DB.get('emg',DEF_EMG);
 let orders=DB.get('orders',[]);
+let reviews=DB.get('reviews',{});
 let users=DB.get('users',{admin:{name:"الأدمن",phone:"admin",pass:"admin123",role:"admin"}});
 let notifs=DB.get('notifs',[]);
 let myGov=DB.get('gov',null);
 let cart=DB.get('cart',[]);
 let me=DB.get('me',null);
 let view='home',curStore=null,authMode='login',chatOrder=null,admTab='stores',trackInt=null;
-const save=()=>{DB.set('stores',stores);DB.set('dlv',dlv);DB.set('ads',ads);DB.set('emg',emg);DB.set('orders',orders);DB.set('users',users);DB.set('notifs',notifs);DB.set('cart',cart)};
+const save=()=>{DB.set('stores',stores);DB.set('dlv',dlv);DB.set('ads',ads);DB.set('emg',emg);DB.set('orders',orders);DB.set('users',users);DB.set('notifs',notifs);DB.set('cart',cart);DB.set('dir',dir);DB.set('reviews',reviews)};
 const $=id=>document.getElementById(id);
 const fmt=n=>n.toFixed(2).replace(/\.00$/,'')+' ج.م';
 const uid=()=>'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -336,10 +406,22 @@ function govOpts(sel,cur){return GOVS.map(g=>`<option value="${g[0]}" ${g[0]===c
 function initGov(){
  $('govSel').innerHTML=govOpts(null,myGov);
  $('govPick').innerHTML=govOpts(null,myGov||'القاهرة');
+ renderCenters();
  if(!myGov)show('govM');
 }
-function saveGov(){myGov=$('govPick').value;DB.set('gov',myGov);$('govSel').value=myGov;hide('govM');renderHome();toast('محافظتك: '+myGov)}
-function changeGov(g){myGov=g;DB.set('gov',g);renderHome()}
+function renderCenters(){
+ const list=GOV_CENTERS[myGov]||[];
+ $('ctrSel').classList.toggle('hidden',!list.length);
+ $('ctrSel').innerHTML='<option value="">كل '+myGov+'</option>'+list.map(c=>`<option ${c===myCenter?'selected':''}>${c}</option>`).join('');
+}
+function saveGov(){
+ myGov=$('govPick').value;myCenter=null;
+ DB.set('gov',myGov);DB.set('center',null);
+ $('govSel').value=myGov;renderCenters();hide('govM');
+ go('home');toast('محافظتك: '+myGov);
+}
+function changeGov(g){myGov=g;myCenter=null;DB.set('gov',g);DB.set('center',null);renderCenters();go('home')}
+function changeCenter(c){myCenter=c||null;DB.set('center',myCenter);renderHome()}
 
 /* ================= ROUTER ================= */
 function go(v,p){
@@ -354,6 +436,7 @@ function go(v,p){
  if(v==='admin')renderAdmin();
  if(v==='delivery')renderDlv();
  if(v==='chat')renderChat();
+ if(v==='dir')renderDirItem();
 }
 
 /* ================= HOME / STORES ================= */
@@ -376,6 +459,24 @@ function renderHome(){
    <div class="smeta emg-tel">☎ ${esc(s.phone||'')}</div>
    <span class="tag">${esc(s.type)}</span></div></div>`}).join('')
   :'<p class="muted">لا توجد محلات في هذه الفئة بعد — جرّب فئة أخرى</p>';
+ renderDir();
+}
+/* ===== دليل المحافظة ===== */
+function renderDir(){
+ const d=dir[myGov]||{rest:[],phar:[],lab:[],doc:[],dlv:[]};
+ $('dirGov').textContent=myGov||'';
+ $('dirTabs').innerHTML=DIR_TYPES.map(t=>{
+  const c=(d[t[0]]||[]).length;
+  return `<button class="tab ${dirTab===t[0]?'on':''}" onclick="dirTab='${t[0]}';renderDir()">${t[1]} (${c})</button>`}).join('');
+ const list=d[dirTab]||[];
+ $('dirGrid').innerHTML=list.length?list.map((e,i)=>`<div class="card" style="margin:0;cursor:pointer" onclick="openDirItem('${myGov}','${dirTab}',${i})">
+   <b>${esc(e[0])}</b>
+   <div class="muted" style="font-size:.78rem;margin-top:4px">${esc((DIR_TYPES.find(t=>t[0]===dirTab)||['',''])[1])} · اضغط للتفاصيل والتقييم</div>
+   ${/^[0-9+]+$/.test(String(e[1]).replace(/\s/g,''))?`<p class="emg-tel" style="font-size:1.1rem;margin:8px 0">☎ ${esc(e[1])}</p>
+   <a class="btn btn-g" href="tel:${esc(String(e[1]).replace(/[^0-9+]/g,''))}" style="text-decoration:none;padding:6px 16px">اتصال</a>`
+   :`<p class="muted" style="margin-top:8px">${esc(e[1])}</p>`}
+  </div>`).join('')
+  :'<p class="muted">لا توجد بيانات في هذا القسم — الأدمن يقدر يضيف</p>';
 }
 function renderAds(){
  const l=ads.filter(a=>a.active&&(a.gov==='all'||a.gov===myGov));
@@ -500,6 +601,71 @@ function sendMsg(){
  save();$('chatIn').value='';renderChat();
 }
 
+/* ================= صفحة تفاصيل عنصر الدليل ================= */
+let curDirItem=null;
+function dirKey(g,t,i){return g+'|'+t+'|'+i}
+function openDirItem(g,t,i){curDirItem={g,t,i};go('dir')}
+function avgRating(k){const r=reviews[k]||[];return r.length?(r.reduce((s,x)=>s+x.stars,0)/r.length):0}
+function starsHTML(k,interactive){
+ const avg=avgRating(k);let h='';
+ for(let s=1;s<=5;s++){
+  const on=s<=Math.round(avg);
+  h+=interactive?`<span style="cursor:pointer;font-size:1.6rem;color:${s<=avg?'#f59e0b':'#d1d5db'}" onclick="rateItem(${s})">★</span>`
+   :`<span style="font-size:1.2rem;color:${on?'#f59e0b':'#d1d5db'}">★</span>`;
+ }
+ return h+(reviews[k]&&reviews[k].length?` <b>${avg.toFixed(1)}</b> <span class="muted">(${reviews[k].length} تقييم)</span>`:interactive?'':' <span class="muted">(لا تقييمات بعد)</span>');
+}
+function rateItem(s){
+ if(!me)return toast('⚠️ سجّل دخولك الأول عشان تقيّم');
+ const k=dirKey(curDirItem.g,curDirItem.t,curDirItem.i);
+ if(!reviews[k])reviews[k]=[];
+ reviews[k]=reviews[k].filter(r=>r.by!==(me.phone||me.id));
+ reviews[k].push({by:me.phone||me.id,who:me.name,stars:s,time:Date.now()});
+ save();renderDirItem();toast('✅ شكرًا لتقييمك!');
+}
+function addReview(){
+ if(!me)return toast('⚠️ سجّل دخولك الأول');
+ const txt=$('rvText').value.trim();if(!txt)return toast('✍️ اكتب تقييمك الأول');
+ const k=dirKey(curDirItem.g,curDirItem.t,curDirItem.i);
+ if(!reviews[k])reviews[k]=[];
+ reviews[k].push({by:me.phone||me.id,who:me.name,stars:5,text:txt,time:Date.now()});
+ $('rvText').value='';save();renderDirItem();toast('✅ تم نشر تقييمك');
+}
+function renderDirItem(){
+ const {g,t,i}=curDirItem||{};if(g===undefined)return go('home');
+ const d=dir[g]||{};const e=(d[t]||[])[i];if(!e)return go('home');
+ const k=dirKey(g,t,i);
+ const phones=[e[1],e[4],e[5]].filter(Boolean);
+ const mapLink=e[6]||`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(esc(e[0])+' '+g+' مصر')}`;
+ const addr=e[2]||g,hours=e[3]||'';
+ const typeName=(DIR_TYPES.find(x=>x[0]===t)||['',''])[1];
+ $('dirItemBody').innerHTML=`
+  <div class="card" style="margin-top:14px">
+   <span class="pill b">${typeName}</span> <span class="pill g">${esc(g)}</span>
+   <h2 style="margin:8px 0">${esc(e[0])}</h2>
+   <div style="margin:6px 0">${starsHTML(k,true)}</div>
+   <p><b>المواعيد:</b> ${esc(hours||'غير مسجّل — اسألهم بالتليفون')}</p>
+   <p style="margin-top:6px">${phones.map(p=>`<a class="btn btn-g" href="tel:${esc(String(p).replace(/[^0-9+]/g,''))}" style="text-decoration:none;margin-left:8px">☎ ${esc(p)}</a>`).join('')}
+   ${phones[0]?`<a class="btn btn-o" target="_blank" href="https://wa.me/2${esc(String(phones[0]).replace(/\D/g,''))}" style="text-decoration:none">واتساب</a>`:''}</p>
+  </div>
+  <div class="card">
+   <h3 style="margin-bottom:10px">الموقع على خريطة جوجل</h3>
+   <div class="mapbox"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+    src="https://maps.google.com/maps?q=${encodeURIComponent(esc(e[0])+' '+g+' مصر')}&z=14&hl=ar&output=embed"></iframe></div>
+   <p class="muted" style="margin-bottom:10px">${esc(addr)}</p>
+   <a class="btn btn-b" target="_blank" style="text-decoration:none"
+    href="${mapLink}">افتح في تطبيق خرائط جوجل</a>
+  </div>
+  <div class="card">
+   <h3 style="margin-bottom:10px">التقييمات والمراجعات</h3>
+   ${(reviews[k]||[]).slice().reverse().map(r=>`<div class="crow"><div class="in">
+    <b>${esc(r.who)}</b> <span style="color:#f59e0b">${'★'.repeat(r.stars)}</span><br>
+    <span>${esc(r.text||'')}</span> <small class="muted">${new Date(r.time).toLocaleDateString('ar-EG')}</small></div></div>`).join('')||'<p class="muted">كن أول من يقيّم هذا المكان</p>'}
+   <textarea class="inp" id="rvText" rows="2" placeholder="اكتب مراجعتك... (التقييم بالنجوم فوق)"></textarea>
+   <button class="btn btn-p" onclick="addReview()">نشر التقييم</button>
+  </div>`;
+}
+
 /* ================= NOTIFICATIONS ================= */
 function openNotifs(){
  show('dOv');show('notifD');
@@ -563,7 +729,7 @@ function doAuth(){
 }
 
 /* ================= ADMIN ================= */
-const ADM_TABS=[['stores','المحلات والمطاعم'],['dlv','التوصيل (سائق/شركة)'],['orders','الطلبات'],['users','المستخدمين'],['ads','الإعلانات'],['emg','أرقام الطوارئ']];
+const ADM_TABS=[['stores','المحلات والمطاعم'],['dlv','التوصيل (سائق/شركة)'],['dir','دليل المحافظات'],['orders','الطلبات'],['users','المستخدمين'],['ads','الإعلانات'],['emg','أرقام الطوارئ']];
 function renderAdmin(){
  if(!me||me.role!=='admin'){toast('⚠️ للأدمن فقط');return go('home')}
  $('adminTabs').innerHTML=ADM_TABS.map(t=>`<button class="tab ${admTab===t[0]?'on':''}" onclick="admTab='${t[0]}';renderAdmin()">${t[1]}</button>`).join('');
@@ -605,6 +771,25 @@ function renderAdmin(){
    <span class="muted">${esc(o.name)} · ${fmt(o.total)}</span></div>
    <span class="pill b">${STAGES[o.stage][1]}</span>
    <button class="btn btn-d" style="padding:5px 12px" onclick="delOrder('${o.id}')">حذف</button></div>`).join(''):'<p class="muted">لا توجد طلبات</p>'}</div>`;
+ }
+ if(admTab==='dir'){
+  const gAdm=window._dirAdmGov||myGov;
+  const d=dir[gAdm]||{rest:[],phar:[],lab:[],doc:[],dlv:[]};
+  b.innerHTML=`<div class="card"><h3 style="margin-bottom:12px">إضافة لقسم الدليل</h3>
+   <div class="row2"><select class="sel" id="ndirGov" onchange="window._dirAdmGov=this.value;renderAdmin()">${govOpts(null,gAdm)}</select>
+   <select class="sel" id="ndirType">${DIR_TYPES.map(t=>`<option value="${t[0]}">${t[1]}</option>`).join('')}</select></div>
+   <div class="row2"><input class="inp" id="ndirName" placeholder="الاسم (مطعم/صيدلية/معمل/دكتور/شركة)"><input class="inp" id="ndirPhone" placeholder="التليفون"></div>
+   <input class="inp" id="ndirAddr" placeholder="العنوان (يظهر على خريطة جوجل)">
+   <input class="inp" id="ndirHours" placeholder="مواعيد العمل (مثال: 24 ساعة)">
+   <div class="row2"><input class="inp" id="ndirPhone2" placeholder="تليفون إضافي (اختياري)"><input class="inp" id="ndirMap" placeholder="رابط خرائط جوجل (اختياري)"></div>
+   <button class="btn btn-p" onclick="ndirSave()">حفظ</button></div>
+  <div class="card"><h3 style="margin-bottom:12px">بيانات ${esc(gAdm)}</h3>
+   <div class="tabs" style="margin-bottom:14px">${DIR_TYPES.map(t=>`<button class="tab ${(window._dirAdmTab||'rest')===t[0]?'on':''}" onclick="window._dirAdmTab='${t[0]}';renderAdmin()">${t[1]} (${(d[t[0]]||[]).length})</button>`).join('')}</div>
+   ${(()=>{const t=window._dirAdmTab||'rest';const l=d[t]||[];
+    return l.length?l.map((e,i)=>`<div class="crow"><div class="in"><b>${esc(e[0])}</b> — <span class="emg-tel">${esc(e[1])}</span>
+    ${e[3]?`<span class="muted"> · ${esc(e[3])}</span>`:''}</div>
+    <button class="btn btn-d" style="padding:5px 12px" onclick="ndirDel('${gAdm}','${t}',${i})">حذف</button></div>`).join(''):'<p class="muted">فارغ</p>'})()}
+  </div>`;
  }
  if(admTab==='users'){
   const us=Object.values(users).filter(u=>u.role!=='admin');
@@ -648,6 +833,14 @@ function nsSave(){
  save();renderAdmin();toast('✅ تم إضافة '+name);
 }
 function delStore(id){if(confirm('حذف المحل؟')){stores=stores.filter(s=>s.id!==id);save();renderAdmin()}}
+function ndirSave(){
+ const g=$('ndirGov').value,t=$('ndirType').value,n=$('ndirName').value.trim(),p=$('ndirPhone').value.trim();
+ const a=$('ndirAddr').value.trim(),h=$('ndirHours').value.trim(),p2=$('ndirPhone2').value.trim(),ml=$('ndirMap').value.trim();
+ if(!n||!p)return toast('⚠️ اكتب الاسم والتليفون');
+ if(!dir[g])dir[g]={rest:[],phar:[],lab:[],doc:[],dlv:[]};
+ dir[g][t].push([n,p,a,h,p2,ml]);save();renderAdmin();toast('✅ تمت الإضافة لدليل '+g);
+}
+function ndirDel(g,t,i){if(confirm('حذف العنصر؟')){dir[g][t].splice(i,1);save();renderAdmin()}}
 function ndSave(){
  const name=$('ndName').value.trim(),phone=$('ndPhone').value.trim(),pass=$('ndPass').value.trim();
  if(!name||!phone||!pass)return toast('⚠️ أكمل كل الحقول');
